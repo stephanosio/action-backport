@@ -97,7 +97,24 @@ const backportOnce = async ({
   title: string;
 }>): Promise<number> => {
   const git = async (...args: string[]) => {
-    await exec("git", args, { cwd: repo });
+    let output = '';
+    const options = {
+      listeners: {
+        stdout: (data: Buffer) => {
+          output += data.toString();
+        },
+        stderr: (data: Buffer) => {
+          output += data.toString();
+        }
+      },
+      cwd: repo
+    };
+
+    try {
+      await exec("git", args, options);
+    } catch {
+      throw new Error(output);
+    }
   };
 
   await git("switch", base);
@@ -315,7 +332,7 @@ const backport = async ({
             body: getFailedBackportCommentBody({
               base,
               commitSha: commitToBackport,
-              errorMessage: error.message,
+              errorMessage: error.message.replace(/^\s*[\r\n]/gm, ""),
               head,
             }),
             issue_number: number,
